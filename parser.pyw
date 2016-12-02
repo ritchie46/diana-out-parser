@@ -3,7 +3,6 @@ import csv
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import os
-from PyQt4.QtGui import *
 import sys
 from PyQt4 import QtCore, QtGui
 import time
@@ -244,6 +243,7 @@ class OutParser:
                     except PermissionError:
                         pass
 
+
 class MyThread(QtCore.QThread):
     def run(self):
         # make thread sleep to make sure
@@ -272,18 +272,18 @@ class ImgUi(QtGui.QMainWindow):
         self.setWindowTitle('diana live')
 
         # text label
-        self.l1 = QLabel(self)
+        self.l1 = QtGui.QLabel(self)
         self.l1.setText("Data is being queried")
         self.l1.setAlignment(QtCore.Qt.AlignCenter)
         self.l1.setGeometry(0, 0, self.img_w, self.padding)
 
-        self.label = QLabel(self)
+        self.label = QtGui.QLabel(self)
         self.label.setScaledContents(True)
-        pixmap = QPixmap(os.getcwd() + "/live.png")
+        pixmap = QtGui.QPixmap(os.getcwd() + "/live.png")
 
         self.label.setPixmap(pixmap)
         self.label.setGeometry(self.padding, self.padding, self.img_w, self.img_h)
-        self.layout = QVBoxLayout(self)
+        self.layout = QtGui.QVBoxLayout(self)
         self.layout.addWidget(self.l1)
         self.layout.addWidget(self.label)
         thread = MyThread(self)
@@ -298,23 +298,11 @@ class ImgUi(QtGui.QMainWindow):
         except:
             print("An exception occured.")
         self.l1.setText("Current load step: %d" % a.load_steps[-1])
-        self.label.setPixmap(QPixmap(os.getcwd() + "/live.png"))
+        self.label.setPixmap(QtGui.QPixmap(os.getcwd() + "/live.png"))
 
 
 if __name__ == "__main__":
     a = OutParser()
-    # a._parse_out_file()
-    # a.to_csv()
-    # a.plot()
-
-
-
-    """
-    print("Load factors\n", a.load_factors, "\nIncrements\n", a.load_increments, "\nsteps\n", a.load_steps,
-          "\nload number\n", a.load_numbers, "\nConvergence\n", a.convergence, "\nplasticity\n", a.plast_columns,
-          "\ncracks\n", a.crack_columns, "\ncumulative force\n", a.force_sum, "\niterations\n", a.iterations,
-          "\nenergy_conv\n", a.energy_conv, "\ndispl_conv\n", a.displ_conv, "\nforce_conv\n", a.force_conv)
-    """
 
     app = QtGui.QApplication(sys.argv)
     window = ImgUi()
