@@ -262,7 +262,7 @@ class OutParser:
             self.force_conv,
             self.plast_columns,
             self.crack_columns,
-            self.force_sum,
+
         ]
         names = [
             "load_steps",
@@ -276,7 +276,6 @@ class OutParser:
             "force_convergence",
             "plasticity",
             "cracks",
-            "sum_forces"
         ]
 
         for i in range(len(files)):
@@ -288,6 +287,29 @@ class OutParser:
                             write.writerow(files[i])
                     except PermissionError:
                         pass
+        # sum forces
+
+        x = []
+        y = []
+        z = []
+
+        for i in range(len(self.force_sum)):
+            x.append(self.force_sum[i][0])
+            y.append(self.force_sum[i][1])
+            z.append(self.force_sum[i][2])
+        files = [x, y, z]
+        names = [
+            "sum_forces_x",
+            "sum_forces_y",
+            "sum_forces_z"
+        ]
+        for i in range(3):
+            try:
+                with open("%s/parsed_csv/%s.csv" % (self.dir, names[i]), 'w') as f:
+                    write = csv.writer(f)
+                    write.writerow(files[i])
+            except PermissionError:
+                pass
 
 
 def equal_length(a, b):
@@ -376,7 +398,6 @@ if __name__ == "__main__":
     window = ImgUi()
     window.show()
     sys.exit(app.exec_())
-
 
 
 
