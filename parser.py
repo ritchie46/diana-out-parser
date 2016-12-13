@@ -1,6 +1,7 @@
 import re
 import csv
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 import os
 import sys
@@ -10,7 +11,6 @@ import time
 
 class OutParser:
     def __init__(self, path=None):
-        print(path)
         self.dir = path
         self.out_file = None
 
@@ -150,25 +150,16 @@ class OutParser:
                     break
 
     def plot(self):
-        gs = gridspec.GridSpec(2, 2)
-        x_val = self.load_steps
+        gs = gridspec.GridSpec(3, 2)
+        mpl.rcParams['xtick.labelsize'] = mpl.rcParams['ytick.labelsize'] = 8
+        x_val = list(range(1, len(self.load_steps) + 1))
         fig = plt.figure()
         plt.style.use("seaborn-whitegrid")
-        ax = fig.add_subplot(gs[0, -1:])
+
+        # conv
+        ax = fig.add_subplot(gs[0, -1])
         ax.set_ylabel("numerical deviation")
         ax.set_xlabel("load steps")
-        a = ax.twinx()
-
-        sol = equal_length(x_val, self.iterations)
-        try:
-            a.step(sol[0], sol[1], color="g", label="iterations")
-        except ValueError:
-            print("Plot 1 not succeeded")
-            plt.close(fig)
-            return 1
-
-        a.set_ylim(0, max(self.iterations) + 10)
-        a.set_ylabel("iterations")
 
         try:
             if len(self.energy_conv) > 0:
@@ -185,40 +176,79 @@ class OutParser:
             plt.close(fig)
             return 1
 
-        ax.legend(loc=2)
-        a.legend(loc=4)
+        ax.legend(loc=2, fontsize=8)
+
+
+        ax = fig.add_subplot(gs[1, -1])
+
+        sol = equal_length(x_val, self.iterations)
+        try:
+            ax.step(sol[0], sol[1], color="g", label="iterations")
+        except ValueError:
+            print("Plot 1 not succeeded")
+            plt.close(fig)
+            return 1
+
+        ax.legend(fontsize=8)
+        ax.set_ylabel("iterations")
 
         sol = equal_length(x_val, list(map(lambda x: x[0], self.crack_columns)))
-        # second plot
-        ax = fig.add_subplot(gs[1, -1:])
+
+        # plasticity
+        ax = fig.add_subplot(gs[2, -1])
         ax.plot(sol[0], sol[1], label="cracks")
         sol = equal_length(x_val, list(map(lambda x: x[0], self.plast_columns)))
         ax.plot(sol[0], sol[1], label="plasticity")
         ax.set_xlabel("load steps")
-        ax.legend(loc=2)
+        ax.legend(loc=2, fontsize=8)
+
+        # cumulative forces
+        sol = equal_length(x_val, self.force_sum)
 
         # third plot
-        ax = fig.add_subplot(gs[0:, 0])
-        sol = equal_length(x_val, self.force_sum)
+        ax = fig.add_subplot(gs[0, 0])
+
         try:
-            ax.plot(sol[0], list(map(lambda x: x[0] / 1000, sol[1])), label="force x")
-            ax.plot(sol[0], list(map(lambda x: x[1] / 1000, sol[1])), label="force y")
-            ax.plot(sol[0], list(map(lambda x: x[2] / 1000, sol[1])), label="force z")
+            ax.plot(sol[0], list(map(lambda x: x[2] / 1000, sol[1])), label="force z", color='r')
         except ValueError:
-            print("Plot 2 not succeeded")
+            print("Plot 3 not succeeded")
+            plt.close(fig)
+            return 1
+        ax.set_ylabel("force [kN]", fontsize=9)
+        ax.set_xlabel("load steps", fontsize=9)
+        ax.legend(loc=1, fontsize=8)
+
+        ax = fig.add_subplot(gs[1, 0])
+        try:
+            ax.plot(sol[0], list(map(lambda x: x[0] / 1000, sol[1])), label="force x", color='g')
+        except ValueError:
+            print("Plot 4 not succeeded")
             plt.close(fig)
             return 1
 
-        ax.set_ylabel("force [kN]")
-        ax.set_xlabel("load steps")
-        ax.legend(loc=1)
+        ax.set_ylabel("force [kN]", fontsize=9)
+        ax.set_xlabel("load steps", fontsize=9)
+        ax.legend(loc=1, fontsize=8)
+
+        ax = fig.add_subplot(gs[2, 0])
+        try:
+            ax.plot(sol[0], list(map(lambda x: x[1] / 1000, sol[1])), label="force y")
+        except ValueError:
+            print("Plot 5 not succeeded")
+            plt.close(fig)
+            return 1
+
+        ax.set_ylabel("force [kN]", fontsize=9)
+        ax.set_xlabel("load steps", fontsize=9)
+        ax.legend(loc=1, fontsize=8)
+
         f = self.dir + "\\live.png"
         plt.tight_layout()
         fig.savefig(f, dpi=300)
         plt.close(fig)
 
     def to_csv(self):
-        os.makedirs("parsed_csv", exist_ok=True)
+        os.makedirs(self.dir + "/parsed_csv", exist_ok=True)
 
         files = [
             self.load_steps,
@@ -297,6 +327,10 @@ class MySignal(QtCore.QObject):
 class ImgUi(QtGui.QMainWindow):
     def __init__(self):
         super().__init__()
+        try:
+            os.remove(a.dir + "/live.png")
+        except FileNotFoundError:
+            pass
         self.padding = 30
         self.img_w = 768
         self.img_h = 567
@@ -305,15 +339,14 @@ class ImgUi(QtGui.QMainWindow):
 
         # text label
         self.l1 = QtGui.QLabel(self)
-        self.l1.setText("Data is being queried")
+
+        self.l1.setText("Data is being queried test. args: %s" % sys.argv)
         self.l1.setAlignment(QtCore.Qt.AlignCenter)
         self.l1.setGeometry(0, 0, self.img_w, self.padding)
 
         self.label = QtGui.QLabel(self)
         self.label.setScaledContents(True)
-        pixmap = QtGui.QPixmap(a.dir + "/live.png")
 
-        self.label.setPixmap(pixmap)
         self.label.setGeometry(self.padding, self.padding, self.img_w, self.img_h)
         self.layout = QtGui.QVBoxLayout(self)
         self.layout.addWidget(self.l1)
@@ -334,6 +367,8 @@ class ImgUi(QtGui.QMainWindow):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         a = OutParser(sys.argv[1])
+    if len(sys.argv) == 3:
+        a.out_file = sys.argv[2]
     else:
         a = OutParser(os.getcwd())
 
@@ -341,7 +376,6 @@ if __name__ == "__main__":
     window = ImgUi()
     window.show()
     sys.exit(app.exec_())
-
 
 
 
