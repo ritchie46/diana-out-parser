@@ -160,6 +160,7 @@ class OutParser:
         ax = fig.add_subplot(gs[0, -1])
         ax.set_ylabel("numerical deviation")
         ax.set_xlabel("load steps")
+        ax.set_ylim(0, 0.1)
 
         try:
             if len(self.energy_conv) > 0:
@@ -177,7 +178,6 @@ class OutParser:
             return 1
 
         ax.legend(loc=2, fontsize=8)
-
 
         ax = fig.add_subplot(gs[1, -1])
 
@@ -362,7 +362,7 @@ class ImgUi(QtGui.QMainWindow):
         # text label
         self.l1 = QtGui.QLabel(self)
 
-        self.l1.setText("Data is being queried test. args: %s" % sys.argv)
+        self.l1.setText("Data is being queried. args: %s" % sys.argv)
         self.l1.setAlignment(QtCore.Qt.AlignCenter)
         self.l1.setGeometry(0, 0, self.img_w, self.padding)
 
