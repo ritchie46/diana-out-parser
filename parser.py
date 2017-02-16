@@ -72,19 +72,14 @@ class OutParser:
             out = f.read()
             print("reading out file")
             while len(out) > 0:
+                """
+                Initiated blocks are not always terminated. To get closing blocks check if the initiated block is
+                terminated before the next block is initiated.
+                """
+
                 ini = out.find("INITIATED:")  # Get index of the next step via 'INITIATED"
                 term = out.find("TERMINATED")
                 ini_2 = ini + 10 + out[ini + 10:].find("INITIATED:")
-
-                # print(ini, term, ini)
-                # step_ini = int(out[ini - 5: ini])
-                # step_term = int(out[term - 5: term])
-                # print(step_ini, step_term)
-                # print(out[ini - 5: ini+20])
-                # print(out[term - 5: term+20])
-
-                print(ini, term, ini_2)
-                print(ini < term < ini_2)
 
                 # Check if the load step is terminated before the nex load step is initiated.
                 if ini < term < ini_2:
@@ -207,8 +202,8 @@ class OutParser:
 
         # conversion
         ax = fig.add_subplot(gs[0, -1])
-        ax.set_ylabel("numerical deviation", fontsize=9)
-        ax.set_xlabel("load steps", fontsize=9)
+        ax.set_ylabel("numerical deviation", fontsize=8)
+        ax.set_xlabel("load steps", fontsize=8)
         ax.set_ylim(0, 0.1)
 
         try:
@@ -239,21 +234,17 @@ class OutParser:
             return 1
 
         ax.legend(fontsize=8)
-        ax.set_ylabel("iterations", fontsize=9)
+        ax.set_ylabel("iterations", fontsize=8)
 
-        sol = equal_length(x_val, list(map(lambda x: x[0], self.crack_columns)))
-
-        # plasticity
+        # cracks
         ax = fig.add_subplot(gs[2, -1])
+        sol = equal_length(x_val, list(map(lambda x: x[0], self.crack_columns)))
         ax.plot(sol[0], sol[1], label="cracks")
-        sol = equal_length(x_val, list(map(lambda x: x[0], self.plast_columns)))
-        ax.plot(sol[0], sol[1], label="plasticity")
-        ax.set_xlabel("load steps")
-        ax.legend(loc=2, fontsize=8)
+        ax.set_xlabel("load steps", fontsize=8)
+        ax.set_ylabel("cracks", fontsize=8)
 
         # cumulative forces
         sol = equal_length(x_val, self.force_sum)
-
         # third plot
         ax = fig.add_subplot(gs[0, 0])
 
@@ -263,8 +254,8 @@ class OutParser:
             print("Plot 3 not succeeded")
             plt.close(fig)
             return 1
-        ax.set_ylabel("force [kN]", fontsize=9)
-        ax.set_xlabel("load steps", fontsize=9)
+        ax.set_ylabel("force [kN]", fontsize=8)
+        ax.set_xlabel("load steps", fontsize=8)
         ax.legend(loc=1, fontsize=8)
 
         ax = fig.add_subplot(gs[1, 0])
@@ -275,8 +266,8 @@ class OutParser:
             plt.close(fig)
             return 1
 
-        ax.set_ylabel("force [kN]", fontsize=9)
-        ax.set_xlabel("load steps", fontsize=9)
+        ax.set_ylabel("force [kN]", fontsize=8)
+        ax.set_xlabel("load steps", fontsize=8)
         ax.legend(loc=1, fontsize=8)
 
         ax = fig.add_subplot(gs[2, 0])
@@ -286,16 +277,25 @@ class OutParser:
             print("Plot 5 not succeeded")
             plt.close(fig)
             return 1
-        ax.set_ylabel("force [kN]", fontsize=9)
-        ax.set_xlabel("load steps", fontsize=9)
+        ax.set_ylabel("force [kN]", fontsize=8)
+        ax.set_xlabel("load steps", fontsize=8)
         ax.legend(loc=1, fontsize=8)
+
+        # plasticity
+        # fourth plot
+        ax = fig.add_subplot(gs[3, 0])
+        sol = equal_length(x_val, list(map(lambda x: x[0], self.plast_columns)))
+        ax.plot(sol[0], sol[1])
+        ax.set_xlabel("load steps", fontsize=8)
+        ax.set_ylabel("plasticity", fontsize=8)
+        ax.legend(loc=2, fontsize=8)
 
         if len(self.moment_sum) > 0:
             # cumulative moments
             sol = equal_length(x_val, self.moment_sum)
 
-            # fourth plot
-            ax = fig.add_subplot(gs[3, :])
+            # fifth plot
+            ax = fig.add_subplot(gs[3, 1])
             try:
                 ax.plot(sol[0], list(map(lambda x: x[0] / 1000, sol[1])), label="moment x", color='r')
             except ValueError:
@@ -315,8 +315,8 @@ class OutParser:
                 plt.close(fig)
                 return 1
 
-            ax.set_ylabel("moment [kNm]", fontsize=9)
-            ax.set_xlabel("load steps", fontsize=9)
+            ax.set_ylabel("moment [kNm]", fontsize=8)
+            ax.set_xlabel("load steps", fontsize=8)
             ax.legend(loc=1, fontsize=8)
 
         f = self.dir + "\\live.png"
