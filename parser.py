@@ -1,7 +1,7 @@
 import re
 import csv
 import matplotlib.pyplot as plt
-import matplotlib as mpl
+import matplotlib
 import matplotlib.gridspec as gridspec
 import os
 import sys
@@ -42,6 +42,7 @@ class OutParser:
         FORCE X        FORCE Y          FORCE Z
         """
         self.force_sum = None
+        self.moment_sum = None
 
     def parse_out_file(self):
         if self.out_file is None:
@@ -62,6 +63,8 @@ class OutParser:
         self.plast_columns = []
         self.crack_columns = []
         self.force_sum = []
+        self.moment_sum = []
+
         with open(self.out_file) as f:
             out = f.read()
             print("reading out file")
@@ -145,21 +148,26 @@ class OutParser:
                     if query:
                         self.force_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
 
+                    indx = out.find("MOMENT X")
+                    query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[indx: indx + 145])
+                    if query:
+                        self.moment_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
+
                     out = out[10:]  # trim part before 'INITIATED:'
                 else:
                     break
 
     def plot(self):
-        gs = gridspec.GridSpec(3, 2)
-        mpl.rcParams['xtick.labelsize'] = mpl.rcParams['ytick.labelsize'] = 8
+        gs = gridspec.GridSpec(4, 2)
+        matplotlib.rcParams['xtick.labelsize'] = matplotlib.rcParams['ytick.labelsize'] = 8
         x_val = list(range(1, len(self.load_steps) + 1))
         fig = plt.figure()
         plt.style.use("seaborn-whitegrid")
 
-        # conv
+        # conversion
         ax = fig.add_subplot(gs[0, -1])
-        ax.set_ylabel("numerical deviation")
-        ax.set_xlabel("load steps")
+        ax.set_ylabel("numerical deviation", fontsize=9)
+        ax.set_xlabel("load steps", fontsize=9)
         ax.set_ylim(0, 0.1)
 
         try:
@@ -190,7 +198,7 @@ class OutParser:
             return 1
 
         ax.legend(fontsize=8)
-        ax.set_ylabel("iterations")
+        ax.set_ylabel("iterations", fontsize=9)
 
         sol = equal_length(x_val, list(map(lambda x: x[0], self.crack_columns)))
 
@@ -237,15 +245,44 @@ class OutParser:
             print("Plot 5 not succeeded")
             plt.close(fig)
             return 1
-
         ax.set_ylabel("force [kN]", fontsize=9)
         ax.set_xlabel("load steps", fontsize=9)
         ax.legend(loc=1, fontsize=8)
+
+        if len(self.moment_sum) > 0:
+            # cumulative moments
+            sol = equal_length(x_val, self.moment_sum)
+
+            # fourth plot
+            ax = fig.add_subplot(gs[3, 0])
+            try:
+                ax.plot(sol[0], list(map(lambda x: x[0] / 1000, sol[1])), label="moment x", color='r')
+            except ValueError:
+                print("Plot 4 not succeeded")
+                plt.close(fig)
+                return 1
+            try:
+                ax.plot(sol[0], list(map(lambda x: x[1] / 1000, sol[1])), label="moment y", color='b')
+            except ValueError:
+                print("Plot 4 not succeeded")
+                plt.close(fig)
+                return 1
+            try:
+                ax.plot(sol[0], list(map(lambda x: x[2] / 1000, sol[1])), label="moment z", color='g')
+            except ValueError:
+                print("Plot 3 not succeeded")
+                plt.close(fig)
+                return 1
+
+            ax.set_ylabel("moment [kNm]", fontsize=9)
+            ax.set_xlabel("load steps", fontsize=9)
+            ax.legend(loc=1, fontsize=8)
 
         f = self.dir + "\\live.png"
         plt.tight_layout()
         fig.savefig(f, dpi=300)
         plt.close(fig)
+        return f
 
     def to_csv(self):
         os.makedirs(self.dir + "/parsed_csv", exist_ok=True)
@@ -355,7 +392,7 @@ class ImgUi(QtGui.QMainWindow):
             pass
         self.padding = 30
         self.img_w = 768
-        self.img_h = 567
+        self.img_h = 768
         self.setGeometry(300, 300, self.img_w + self.padding * 2, self.img_h + self.padding * 2)
         self.setWindowTitle('diana live')
 
