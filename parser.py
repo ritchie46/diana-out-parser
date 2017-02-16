@@ -78,122 +78,129 @@ class OutParser:
                 """
 
                 ini = out.find("INITIATED:")  # Get index of the next step via 'INITIATED"
-                term = out.find("TERMINATED")
-                ini_2 = ini + 10 + out[ini + 10:].find("INITIATED:")
+                if ini > 0:
+                    term = out[ini:].find("TERMINATED")
+                    ini_2 = 10 + out[ini + 10:].find("INITIATED:")
 
-                # Check if the load step is terminated before the nex load step is initiated.
-                if ini < term < ini_2:
-                    # Get the load step
-                    query = re.search(r"\d+", out[ini - 7: ini + 2])
-                    if query:
-                        step = int(query.group(0))
-                        self.load_steps.append(step)
+                    # Check if the load step is terminated before the nex load step is initiated.
+                    if term < ini_2:
+
+                        # Get the load step
+                        query = re.search(r"\d+", out[ini - 7: ini + 2])
+                        if query:
+                            step = int(query.group(0))
+                            self.load_steps.append(step)
+
+                        # Slice file index is now zero'
+                        out = out[ini:]
+                        print("ini", ini- ini, "term", term, "ini2", ini_2)
+
+                        # Get the load combination
+                        query = re.search(r"(\d\d|\d)", out[31: 42])
+                        if query:
+                            combi_nr = int(query.group(0))
+                            self.load_numbers.append(combi_nr)
+                        else:
+                            self.load_numbers.append(None)
+
+                        # Get the load factor
+                        ind = out.find("TOTAL LOAD FACTOR:")
+                        query = re.search(r"\d[.]\d\d\d[E][-]\d\d|\d[.]\d\d\d[E][+]\d\d", out[ind: ind + 70])
+                        if query:
+                            lf = float(query.group(0))
+                            self.load_factors.append(lf)
+                        else:
+                            self.load_factors.append(None)
+
+                        query = re.search(r"\d[.]\d\d\d[E][-]\d\d|\d[.]\d\d\d[E][+]\d\d", out[:60])
+                        if query:
+                            ld_increment = float(query.group(0))
+                            self.load_increments.append(ld_increment)
+                        else:
+                            self.load_increments.append(None)
+
+                        # Convergence check
+                        ind = out.find("TERMINATED")
+                        query = re.search(r"\bNO\b", out[ind: ind + 25])
+                        if query:
+                            self.convergence.append(False)
+                        else:
+                            self.convergence.append(True)
+
+                        # Iterations
+                        query = re.search("\d+", out[ind: ind + 40])
+                        if query:
+                            self.iterations.append(int(query.group(0)))
+                        else:
+                            self.iterations.append(0)
+
+                        # Energy convergence
+                        substr = out[ind - 250: ind]
+                        ind = substr.rfind("RELATIVE ENERGY VARIATION")
+                        query = re.search("\d.\d+[E].\d+", substr[ind: ind + 50])
+                        if query:
+                            self.energy_conv.append(float(query.group(0)))
+                        else:
+                            self.energy_conv.append(0)
+
+                        # Out of balace force
+                        ind = substr.rfind("RELATIVE OUT OF BALANCE FORCE")
+                        query = re.search("\d.\d+[E].\d+", substr[ind: ind + 50])
+                        if query:
+                            self.force_conv.append(float(query.group(0)))
+                        else:
+                            self.force_conv.append(0)
+
+                        # Displacement variation
+                        ind = substr.rfind("RELATIVE DISPLACEMENT VARIATION")
+                        query = re.search("\d.\d+[E].\d+", substr[ind: ind + 50])
+                        if query:
+                            self.displ_conv.append(float(query.group(0)))
+                        else:
+                            self.displ_conv.append(0)
+
+                        # Plasticity model
+                        ind = out.find("PLASTICITY LOGGING SUMMARY") + \
+                              out[out.find("PLASTICITY LOGGING SUMMARY"):].find("TOTAL MODEL")
+                        query = re.findall(r"\d+", out[ind: ind + 110])
+                        if query:
+                            self.plast_columns.append(list(map(float, query)))
+                        else:
+                            self.plast_columns.append((0,))
+
+                        # Cracks model
+                        ind = out.find("CRACKING LOGGING SUMMARY") + \
+                              out[out.find("CRACKING LOGGING SUMMARY"):].find("TOTAL MODEL")
+                        query = re.findall(r"\d+", out[ind: ind + 238])
+                        if query:
+                            self.crack_columns.append(list(map(float, query)))
+                        else:
+                            self.crack_columns.append((0,))
+
+                        # Cumulative Reaction
+                        ind = out.find("CUMULATIVE REACTION")
+                        query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[ind: ind + 145])
+                        if query:
+                            self.force_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
+                        else:
+                            self.force_sum.append((0, 0, 0))
+
+                        ind = out.find("MOMENT X")
+                        query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[ind: ind + 145])
+                        if query:
+                            self.moment_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
+                        else:
+                            self.moment_sum.append((0, 0, 0))
+
+                        out = out[term + 12:]  # trim 'TERMINATED'
                     else:
-                        self.load_steps.append(0)
-                    # Slice file index is now zero'
-                    out = out[ini:]
-
-                    # Get the load combination
-                    query = re.search(r"(\d\d|\d)", out[31: 42])
-                    if query:
-                        combi_nr = int(query.group(0))
-                        self.load_numbers.append(combi_nr)
-                    else:
-                        self.load_numbers.append(None)
-
-                    # Get the load factor
-                    ini = out.find("TOTAL LOAD FACTOR:")
-                    query = re.search(r"\d[.]\d\d\d[E][-]\d\d|\d[.]\d\d\d[E][+]\d\d", out[ini: ini + 70])
-                    if query:
-                        lf = float(query.group(0))
-                        self.load_factors.append(lf)
-                    else:
-                        self.load_factors.append(None)
-
-                    query = re.search(r"\d[.]\d\d\d[E][-]\d\d|\d[.]\d\d\d[E][+]\d\d", out[:60])
-                    if query:
-                        ld_increment = float(query.group(0))
-                        self.load_increments.append(ld_increment)
-                    else:
-                        self.load_increments.append(None)
-
-                    # Convergence check
-                    ini = out.find("TERMINATED")
-                    query = re.search(r"\bNO\b", out[ini: ini + 25])
-                    if query:
-                        self.convergence.append(False)
-                    else:
-                        self.convergence.append(True)
-
-                    # Iterations
-                    query = re.search("\d+", out[ini: ini + 40])
-                    if query:
-                        self.iterations.append(int(query.group(0)))
-                    else:
-                        self.iterations.append(0)
-
-                    # Energy convergence
-                    substr = out[ini - 250: ini]
-                    ini = substr.rfind("RELATIVE ENERGY VARIATION")
-                    query = re.search("\d.\d+[E].\d+", substr[ini: ini + 50])
-                    if query:
-                        self.energy_conv.append(float(query.group(0)))
-                    else:
-                        self.energy_conv.append(0)
-
-                    # Out of balace force
-                    ini = substr.rfind("RELATIVE OUT OF BALANCE FORCE")
-                    query = re.search("\d.\d+[E].\d+", substr[ini: ini + 50])
-                    if query:
-                        self.force_conv.append(float(query.group(0)))
-                    else:
-                        self.force_conv.append(0)
-
-                    # Displacement variation
-                    ini = substr.rfind("RELATIVE DISPLACEMENT VARIATION")
-                    query = re.search("\d.\d+[E].\d+", substr[ini: ini + 50])
-                    if query:
-                        self.displ_conv.append(float(query.group(0)))
-                    else:
-                        self.displ_conv.append(0)
-
-                    # Plasticity model
-                    ini = out.find("PLASTICITY LOGGING SUMMARY") + \
-                          out[out.find("PLASTICITY LOGGING SUMMARY"):].find("TOTAL MODEL")
-                    query = re.findall(r"\d+", out[ini: ini + 110])
-                    if query:
-                        self.plast_columns.append(list(map(float, query)))
-                    else:
-                        self.plast_columns.append((0,))
-
-                    # Cracks model
-                    ini = out.find("CRACKING LOGGING SUMMARY") + \
-                          out[out.find("CRACKING LOGGING SUMMARY"):].find("TOTAL MODEL")
-                    query = re.findall(r"\d+", out[ini: ini + 238])
-                    if query:
-                        self.crack_columns.append(list(map(float, query)))
-                    else:
-                        self.crack_columns.append((0,))
-
-                    # Cumulative Reaction
-                    ini = out.find("CUMULATIVE REACTION")
-                    query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[ini: ini + 145])
-                    if query:
-                        self.force_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
-                    else:
-                        self.force_sum.append((0, 0, 0))
-
-                    ini = out.find("MOMENT X")
-                    query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[ini: ini + 145])
-                    if query:
-                        self.moment_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
-                    else:
-                        self.moment_sum.append((0, 0, 0))
-
-                    out = out[term + 12:]  # trim 'TERMINATED'
+                        # Block is not terminated, skip some lines and try again.
+                        out = out[25:]
 
                 else:
-                    out = out[ini_2:]
+                    # No initiated block left.
+                    break
+
 
     def plot(self):
         gs = gridspec.GridSpec(4, 2)
