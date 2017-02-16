@@ -412,7 +412,7 @@ class MyThread(QtCore.QThread):
     def run(self):
         # make thread sleep to make sure
         # QApplication is running before doing something
-        time.sleep(1)
+        time.sleep(15)
         self.loop()
 
     def loop(self):
@@ -467,15 +467,12 @@ class ImgUi(QtGui.QMainWindow):
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) > 1:
-    #     a = OutParser(sys.argv[1])
-    # if len(sys.argv) == 3:
-    #     a.out_file = sys.argv[2]
-    # else:
-    #     a = OutParser(os.getcwd())
-
-    a = OutParser(os.getcwd())
-    a.out_file = os.path.join(os.getcwd(), "niras.out")
+    if len(sys.argv) > 1:
+        a = OutParser(sys.argv[1])
+    if len(sys.argv) == 3:
+        a.out_file = sys.argv[2]
+    else:
+        a = OutParser(os.getcwd())
 
     app = QtGui.QApplication(sys.argv)
     window = ImgUi()
