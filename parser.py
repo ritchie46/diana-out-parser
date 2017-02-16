@@ -158,15 +158,17 @@ class OutParser:
                         self.displ_conv.append(0)
 
                     # Plasticity model
-                    ini = out.find("PLASTICITY LOGGING SUMMARY")
-                    query = re.findall(r"\d+", out[ini: ini + 192])
+                    ini = out.find("PLASTICITY LOGGING SUMMARY") + \
+                          out[out.find("PLASTICITY LOGGING SUMMARY"):].find("TOTAL MODEL")
+                    query = re.findall(r"\d+", out[ini: ini + 110])
                     if query:
                         self.plast_columns.append(list(map(float, query)))
                     else:
                         self.plast_columns.append((0,))
 
                     # Cracks model
-                    ini = out.find("CRACKING LOGGING SUMMARY")
+                    ini = out.find("CRACKING LOGGING SUMMARY") + \
+                          out[out.find("CRACKING LOGGING SUMMARY"):].find("TOTAL MODEL")
                     query = re.findall(r"\d+", out[ini: ini + 238])
                     if query:
                         self.crack_columns.append(list(map(float, query)))
