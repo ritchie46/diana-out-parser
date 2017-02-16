@@ -11,6 +11,9 @@ import time
 
 class OutParser:
     def __init__(self, path=None):
+        """
+        :param path: Path of the directory.
+        """
         self.dir = path
         self.out_file = None
 
@@ -69,93 +72,131 @@ class OutParser:
             out = f.read()
             print("reading out file")
             while len(out) > 0:
-                indx = out.find("INITIATED:")  # Get index of the next step via 'INITIATED"
-                if indx > 0:
+                ini = out.find("INITIATED:")  # Get index of the next step via 'INITIATED"
+                term = out.find("TERMINATED")
+                ini_2 = ini + 10 + out[ini + 10:].find("INITIATED:")
+
+                # print(ini, term, ini)
+                # step_ini = int(out[ini - 5: ini])
+                # step_term = int(out[term - 5: term])
+                # print(step_ini, step_term)
+                # print(out[ini - 5: ini+20])
+                # print(out[term - 5: term+20])
+
+                print(ini, term, ini_2)
+                print(ini < term < ini_2)
+
+                # Check if the load step is terminated before the nex load step is initiated.
+                if ini < term < ini_2:
                     # Get the load step
-                    query = re.search(r"\d+", out[indx - 7: indx + 2])
+                    query = re.search(r"\d+", out[ini - 7: ini + 2])
                     if query:
                         step = int(query.group(0))
                         self.load_steps.append(step)
-
+                    else:
+                        self.load_steps.append(0)
                     # Slice file index is now zero'
-                    out = out[indx:]
+                    out = out[ini:]
 
                     # Get the load combination
                     query = re.search(r"(\d\d|\d)", out[31: 42])
                     if query:
                         combi_nr = int(query.group(0))
                         self.load_numbers.append(combi_nr)
+                    else:
+                        self.load_numbers.append(None)
 
                     # Get the load factor
-                    indx = out.find("TOTAL LOAD FACTOR:")
-                    query = re.search(r"\d[.]\d\d\d[E][-]\d\d|\d[.]\d\d\d[E][+]\d\d", out[indx: indx + 70])
+                    ini = out.find("TOTAL LOAD FACTOR:")
+                    query = re.search(r"\d[.]\d\d\d[E][-]\d\d|\d[.]\d\d\d[E][+]\d\d", out[ini: ini + 70])
                     if query:
                         lf = float(query.group(0))
                         self.load_factors.append(lf)
+                    else:
+                        self.load_factors.append(None)
 
                     query = re.search(r"\d[.]\d\d\d[E][-]\d\d|\d[.]\d\d\d[E][+]\d\d", out[:60])
                     if query:
                         ld_increment = float(query.group(0))
                         self.load_increments.append(ld_increment)
+                    else:
+                        self.load_increments.append(None)
 
                     # Convergence check
-                    indx = out.find("TERMINATED")
-                    query = re.search(r"\bNO\b", out[indx: indx + 25])
+                    ini = out.find("TERMINATED")
+                    query = re.search(r"\bNO\b", out[ini: ini + 25])
                     if query:
                         self.convergence.append(False)
                     else:
                         self.convergence.append(True)
 
                     # Iterations
-                    query = re.search("\d+", out[indx: indx + 40])
+                    query = re.search("\d+", out[ini: ini + 40])
                     if query:
                         self.iterations.append(int(query.group(0)))
+                    else:
+                        self.iterations.append(0)
 
                     # Energy convergence
-                    substr = out[indx - 250: indx]
-                    indx = substr.rfind("RELATIVE ENERGY VARIATION")
-                    query = re.search("\d.\d+[E].\d+", substr[indx: indx + 50])
+                    substr = out[ini - 250: ini]
+                    ini = substr.rfind("RELATIVE ENERGY VARIATION")
+                    query = re.search("\d.\d+[E].\d+", substr[ini: ini + 50])
                     if query:
                         self.energy_conv.append(float(query.group(0)))
+                    else:
+                        self.energy_conv.append(0)
 
                     # Out of balace force
-                    indx = substr.rfind("RELATIVE OUT OF BALANCE FORCE")
-                    query = re.search("\d.\d+[E].\d+", substr[indx: indx + 50])
+                    ini = substr.rfind("RELATIVE OUT OF BALANCE FORCE")
+                    query = re.search("\d.\d+[E].\d+", substr[ini: ini + 50])
                     if query:
                         self.force_conv.append(float(query.group(0)))
+                    else:
+                        self.force_conv.append(0)
 
                     # Displacement variation
-                    indx = substr.rfind("RELATIVE DISPLACEMENT VARIATION")
-                    query = re.search("\d.\d+[E].\d+", substr[indx: indx + 50])
+                    ini = substr.rfind("RELATIVE DISPLACEMENT VARIATION")
+                    query = re.search("\d.\d+[E].\d+", substr[ini: ini + 50])
                     if query:
                         self.displ_conv.append(float(query.group(0)))
+                    else:
+                        self.displ_conv.append(0)
 
                     # Plasticity model
-                    indx = out.find("PLASTICITY LOGGING SUMMARY")
-                    query = re.findall(r"\d+", out[indx: indx + 192])
+                    ini = out.find("PLASTICITY LOGGING SUMMARY")
+                    query = re.findall(r"\d+", out[ini: ini + 192])
                     if query:
                         self.plast_columns.append(list(map(float, query)))
+                    else:
+                        self.plast_columns.append((0,))
 
                     # Cracks model
-                    indx = out.find("CRACKING LOGGING SUMMARY")
-                    query = re.findall(r"\d+", out[indx: indx + 238])
+                    ini = out.find("CRACKING LOGGING SUMMARY")
+                    query = re.findall(r"\d+", out[ini: ini + 238])
                     if query:
                         self.crack_columns.append(list(map(float, query)))
+                    else:
+                        self.crack_columns.append((0,))
 
                     # Cumulative Reaction
-                    indx = out.find("CUMULATIVE REACTION")
-                    query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[indx: indx + 145])
+                    ini = out.find("CUMULATIVE REACTION")
+                    query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[ini: ini + 145])
                     if query:
                         self.force_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
+                    else:
+                        self.force_sum.append((0, 0, 0))
 
-                    indx = out.find("MOMENT X")
-                    query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[indx: indx + 145])
+                    ini = out.find("MOMENT X")
+                    query = re.findall(r"\S+\d+[A-Z]+\S+\d", out[ini: ini + 145])
                     if query:
                         self.moment_sum.append(list(map(lambda x: float(x.replace("D", "E")), query)))
+                    else:
+                        self.moment_sum.append((0, 0, 0))
 
-                    out = out[10:]  # trim part before 'INITIATED:'
+                    out = out[term + 12:]  # trim 'TERMINATED'
+
                 else:
-                    break
+                    out = out[ini_2:]
 
     def plot(self):
         gs = gridspec.GridSpec(4, 2)
@@ -254,7 +295,7 @@ class OutParser:
             sol = equal_length(x_val, self.moment_sum)
 
             # fourth plot
-            ax = fig.add_subplot(gs[3, 0])
+            ax = fig.add_subplot(gs[3, :])
             try:
                 ax.plot(sol[0], list(map(lambda x: x[0] / 1000, sol[1])), label="moment x", color='r')
             except ValueError:
@@ -369,13 +410,13 @@ class MyThread(QtCore.QThread):
     def run(self):
         # make thread sleep to make sure
         # QApplication is running before doing something
-        time.sleep(2)
+        time.sleep(1)
         self.loop()
 
     def loop(self):
         while 1:
-            time.sleep(15)
             self.emit(QtCore.SIGNAL("update()"))
+            time.sleep(15)
 
 
 class MySignal(QtCore.QObject):
@@ -424,12 +465,15 @@ class ImgUi(QtGui.QMainWindow):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        a = OutParser(sys.argv[1])
-    if len(sys.argv) == 3:
-        a.out_file = sys.argv[2]
-    else:
-        a = OutParser(os.getcwd())
+    # if len(sys.argv) > 1:
+    #     a = OutParser(sys.argv[1])
+    # if len(sys.argv) == 3:
+    #     a.out_file = sys.argv[2]
+    # else:
+    #     a = OutParser(os.getcwd())
+
+    a = OutParser(os.getcwd())
+    a.out_file = os.path.join(os.getcwd(), "niras.out")
 
     app = QtGui.QApplication(sys.argv)
     window = ImgUi()
