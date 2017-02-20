@@ -225,25 +225,25 @@ class OutParser:
             if len(self.displ_conv) > 0:
                 sol = equal_length(x_val, self.displ_conv)
                 ax.plot(sol[0], sol[1], label="displacement")
+            ax.legend(loc=2, fontsize=8)
         except ValueError:
             print("Plot 2 not succeeded")
             plt.close(fig)
             return 1
 
-        ax.legend(loc=2, fontsize=8)
-
+        # iterations
         ax = fig.add_subplot(gs[1, -1])
-
         sol = equal_length(x_val, self.iterations)
         try:
             ax.step(sol[0], sol[1], color="g", label="iterations")
+            ax.legend(fontsize=8)
+            ax.set_ylabel("iterations", fontsize=8)
+            ax.set_xlabel("load steps", fontsize=8)
         except ValueError:
             print("Plot 1 not succeeded")
             plt.close(fig)
             return 1
 
-        ax.legend(fontsize=8)
-        ax.set_ylabel("iterations", fontsize=8)
 
         # cracks
         ax = fig.add_subplot(gs[2, -1])
@@ -290,21 +290,12 @@ class OutParser:
         ax.set_xlabel("load steps", fontsize=8)
         ax.legend(loc=1, fontsize=8)
 
-        # plasticity
-        # fourth plot
-        ax = fig.add_subplot(gs[3, 0])
-        sol = equal_length(x_val, list(map(lambda x: x[0], self.plast_columns)))
-        ax.plot(sol[0], sol[1])
-        ax.set_xlabel("load steps", fontsize=8)
-        ax.set_ylabel("plasticity", fontsize=8)
-        ax.legend(loc=2, fontsize=8)
-
         if len(self.moment_sum) > 0:
             # cumulative moments
             sol = equal_length(x_val, self.moment_sum)
 
-            # fifth plot
-            ax = fig.add_subplot(gs[3, 1])
+            # fourth plot
+            ax = fig.add_subplot(gs[3, 0])
             try:
                 ax.plot(sol[0], list(map(lambda x: x[0] / 1000, sol[1])), label="moment x", color='r')
             except ValueError:
@@ -327,6 +318,15 @@ class OutParser:
             ax.set_ylabel("moment [kNm]", fontsize=8)
             ax.set_xlabel("load steps", fontsize=8)
             ax.legend(loc=1, fontsize=8)
+
+        # plasticity
+        # fifth plot
+        ax = fig.add_subplot(gs[3, 1])
+        sol = equal_length(x_val, list(map(lambda x: x[0], self.plast_columns)))
+        ax.plot(sol[0], sol[1], color='r')
+        ax.set_xlabel("load steps", fontsize=8)
+        ax.set_ylabel("plasticity", fontsize=8)
+        ax.legend(loc=2, fontsize=8)
 
         f = self.dir + "\\live.png"
         plt.tight_layout()
