@@ -244,7 +244,6 @@ class OutParser:
             plt.close(fig)
             return 1
 
-
         # cracks
         ax = fig.add_subplot(gs[2, -1])
         sol = equal_length(x_val, list(map(lambda x: x[0], self.crack_columns)))
@@ -398,6 +397,30 @@ class OutParser:
             except PermissionError:
                 pass
 
+        # sum moment
+
+        x = []
+        y = []
+        z = []
+
+        for i in range(len(self.moment_sum)):
+            x.append(self.moment_sum[i][0])
+            y.append(self.moment_sum[i][1])
+            z.append(self.moment_sum[i][2])
+        files = [x, y, z]
+        names = [
+            "sum_moments_x",
+            "sum_moments_y",
+            "sum_moments_z"
+        ]
+        for i in range(3):
+            try:
+                with open("%s/parsed_csv/%s.csv" % (self.dir, names[i]), 'w') as f:
+                    write = csv.writer(f)
+                    write.writerow(files[i])
+            except PermissionError:
+                pass
+
 
 def equal_length(a, b):
     if len(a) == len(b):
@@ -462,6 +485,7 @@ class ImgUi(QtGui.QMainWindow):
         self.layout.addWidget(self.label)
         thread = MyThread(self)
         self.connect(thread, QtCore.SIGNAL("update()"), self.update)
+        self.showMinimized()
         thread.start()
 
     def update(self):
