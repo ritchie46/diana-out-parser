@@ -201,7 +201,6 @@ class OutParser:
                     # No initiated block left.
                     break
 
-
     def plot(self):
         gs = gridspec.GridSpec(4, 2)
         matplotlib.rcParams['xtick.labelsize'] = matplotlib.rcParams['ytick.labelsize'] = 8
